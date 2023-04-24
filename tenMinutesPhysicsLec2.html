@@ -18,7 +18,7 @@
         var scene;
         var renderer;
         var camera;
-        var cameraContrl;
+        var cameraControl;
 
         function InitScene(){
             scene = new THREE.Scene();
@@ -28,7 +28,7 @@
             var spotLight = new THREE.SpotLight(0xffffff);
 
 
-            var directionLight = new THREE.DirectionLIght(0x55505a,1);
+            var directionLight = new THREE.DirectionLight(0x55505a,1);
 
 
             renderer = new THREE.WebGLRenderer();
@@ -46,9 +46,9 @@
             scene.add(camera);
 
 
-            cameraContrl = new THREE.OrbitControl(camera,renderer.domElement);
+            cameraControl = new THREE.OrbitControl(camera,renderer.domElement);
             cameraControl.zoomSpeed = 2.0;
-            cameraContrl.panSpeed = 0.4;
+            cameraControl.panSpeed = 0.4;
 
 
             var sphereGeometry = new THREE.SPhereGeoMetry(0.2,32,32);
@@ -69,7 +69,7 @@
 
         function Rendering(){
             renderer.render(scene,camera);
-            cameraContrl.update();
+            cameraControl.update();
         }
         function Tick(){
             PhysicsSimulating();
