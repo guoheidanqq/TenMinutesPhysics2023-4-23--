@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sphere3D</title>
+    <title>Sphere3D</title>   
     <script type = "importmap">
         {
             "imports":{
@@ -20,7 +20,7 @@
    
     <script type = "module">       
         import * as THREE from 'three';
-        import {OribitControls} from 'three/addons/controls/OrbitControls';
+        import {OribitControls} from 'three/addons/controls/OrbitControls.js';
 
         
         var scene;
@@ -73,6 +73,15 @@
             
 
 
+            
+
+            var helper = new THREE.GridHelper();
+            helper.material.opacity = 1.0;
+            helper.material.transparent = true;
+            helper.position.set(0,0.002,0);
+            scene.add(helper);
+
+
 
             renderer = new THREE.WebGLRenderer();
             renderer.shadowMap.enabled = true;
@@ -99,11 +108,20 @@
             var sphereMesh =  new THREE.Mesh(sphereGeometry,sphereMaterial);
             sphere.position.set(0,1,0);
             scene.add(sphereMesh);
-
+            
+            window.addEventListener("resize",resizeEventHandler,false);
 
 
             
         }
+
+       
+        function resizeEventHandler(){
+            camera.apsect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth,window.innerHeight);
+        }
+
 
 
         function PhysicsSimulating(){
@@ -116,7 +134,10 @@
         }
         function Tick(){
             PhysicsSimulating();
-            Rendering();
+           // Rendering();
+            renderer.render(scene,camera);
+            cameraControl.update();
+
             requestAnimationFrame(Tick);
         }
 
