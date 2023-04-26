@@ -5,16 +5,24 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sphere3D</title>
+    <script type = "importmap">
+        {
+            "imports":{
+                "three":"./build/three.module.js",
+                "three/addons/": "./jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
     <h1>Sphere3D</h1>
     <div id = "container"></div>
-    <script src = "https://threejs.org/build/three.js"></script>
-    <script src = "https://threejs.org/examples/jsm/controls/OrbitControls.js"></script>
+   
+    <script type = "module">       
+        import * as THREE from 'three';
+        import {OribitControls} from 'three/addons/controls/OrbitControls';
 
-    <script>
         
-
         var scene;
         var renderer;
         var camera;
