@@ -34,6 +34,14 @@
             scene.fog = new THREE.Fog(0x000000,0,15);
 
             var spotLight = new THREE.SpotLight(0xffffff);
+            spotLight.angle = Math.PI/5;
+            spotLight.penumbra = 0.2;
+            spotLight.position.set(2,3,3);
+            spotLight.castShadow = true;
+            spotLight.shadow.camera.near = 3;
+            spotLight.shadow.camera.far = 10;
+            spotLight.shadow.mapSize.width = 1024;
+            spotLight.shadow.mapSize.height = 1024;
 
 
             var directionLight = new THREE.DirectionLight(0x55505a,1);
