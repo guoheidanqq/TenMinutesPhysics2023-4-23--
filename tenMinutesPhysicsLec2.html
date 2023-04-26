@@ -5,6 +5,30 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sphere3D</title>   
+
+</head>
+<body>
+    <h1>Sphere3D</h1>
+    <button id = "btRun" onclick="run()"> Run </button>
+    <button id = "btReset" onclick="restart()"> Restart</button>
+    <div id = "container"></div>
+    <script>
+        var paused = true;
+        function run(){
+            var button = document.getElementById("btRun");
+            if(paused)
+            button.innerHTML = "Stop";
+            else button.innerHTML = "Run";
+            paused = !paused
+        }
+
+
+        function restart(){
+            location.reload();
+        }
+    </script>
+
+
     <script type = "importmap">
         {
             "imports":{
@@ -13,20 +37,80 @@
             }
         }
     </script>
-</head>
-<body>
-    <h1>Sphere3D</h1>
-    <div id = "container"></div>
-   
+
+
+    <script>
+
+
+    </script>
     <script type = "module">       
         import * as THREE from 'three';
-        import {OribitControls} from 'three/addons/controls/OrbitControls.js';
-
-        
+        import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+        //import * as THREE from "https://threejs.org/build/three.module.js";
+       // import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+        console.log(new THREE.Scene());
         var scene;
         var renderer;
         var camera;
         var cameraControl;
+
+        var physicsScene = {
+
+            G: new THREE.Vector3(0,-10,0),
+            deltaT: 1.0/60.0,
+            paused: true,
+            worldSize:{x:1.5,z:2.5},
+            objects:[]
+        };
+
+        class Sphere{
+            constructor(position,radius,velocity,scene){
+                this.position = position;
+                this.radisu = radius;
+                this.velocity = velocity;
+                this.scene = scene;
+                
+                var sphereGeometry = new THREE.SphereGeometry(radius,32,32);
+                var sphereMaterial = new THREE.MeshPhongMaterial({color:0xff0000});
+                this.sphereMesh = new THREE.Mesh(sphereGeometry,sphereMaterial);
+                this.sphereMesh.position = position;
+                scene.add(this.sphereMesh); 
+            }
+
+            simulate(){
+
+                this.velocity.addScaledVector(physicsScene.G,physicsScene.deltaT);
+                this.position.addScaledVector(this.velocity,physicsScene.deltaT);
+
+                if(this.position.x < -physicsScene.worldSize.x){
+                    this.position.x = -physicsScene.worldSize.x;
+                    this.velocity.x = -this.velocity.x;
+
+                }
+                if(this.position.x > physicsScene.worldSize.x){
+                    this.position.x = physicsScene.worldSize.x;
+                    this.velocity.x = this.velocity.x;
+
+                }
+                if(this.position.z < -physicsScene.worldSize.z){
+                    this.position.z = -physicsScene.worldSize.z;
+                    this.velocity.z = -this.velocity.z;
+
+                }
+                if(this.position.z > physicsScene.worldSize.z){
+                    this.position.z = physicsScene.worldSize.z;
+                    this.velocity.z = this.velocity.z;
+
+                }
+
+
+            }
+
+
+
+        };
+
+
 
         function InitScene(){
             scene = new THREE.Scene();
@@ -45,7 +129,7 @@
             scene.add(spotLight);
 
 
-            var directionLight = new THREE.DirectionLight(0x55505a,1);
+            var directionLight = new THREE.DirectionalLight(0x55505a,1);
             directionLight.position.set(0,3,0);
             directionLight.castShadow = true;
             directionLight.shadow.near = 1;
@@ -64,10 +148,10 @@
 
             var ground = new THREE.Mesh(
                 new THREE.PlaneBufferGeometry(20,20,1,1),
-                new THREE.MeshePhongMaterial({color:0xa0adaf,shininess:150})
+                new THREE.MeshPhongMaterial({color:0xa0adaf,shininess:150})
 
             );
-            ground.roation.x = -Math.PI/2;
+            ground.rotation.x = -Math.PI/2;
             ground.receiveShadow = true;
             scene.add(ground);
             
@@ -91,22 +175,22 @@
 
 
 
-            camera = new THREE.PersperctiveCamera(70,window.innerWidth/window.innerHeight,0.01,100);
+            camera = new THREE.PerspectiveCamera(70,window.innerWidth/window.innerHeight,0.01,100);
             camera.position.set(0,1,4);
             camera.updateMatrixWorld();
 
             scene.add(camera);
 
 
-            cameraControl = new THREE.OribitControls(camera,renderer.domElement);
+            cameraControl = new OrbitControls(camera,renderer.domElement);
             cameraControl.zoomSpeed = 2.0;
             cameraControl.panSpeed = 0.4;
 
 
-            var sphereGeometry = new THREE.SPhereGeoMetry(0.2,32,32);
-            var sphereMaterial = new THREE.MeshePhongMaterial({color: 0x00ff00});
+            var sphereGeometry = new THREE.SphereGeometry(0.2,32,32);
+            var sphereMaterial = new THREE.MeshPhongMaterial({color: 0x00ff00});
             var sphereMesh =  new THREE.Mesh(sphereGeometry,sphereMaterial);
-            sphere.position.set(0,1,0);
+            sphereMesh.position.set(0,1,0);
             scene.add(sphereMesh);
             
             window.addEventListener("resize",resizeEventHandler,false);
@@ -134,9 +218,7 @@
         }
         function Tick(){
             PhysicsSimulating();
-           // Rendering();
-            renderer.render(scene,camera);
-            cameraControl.update();
+            Rendering(); 
 
             requestAnimationFrame(Tick);
         }
