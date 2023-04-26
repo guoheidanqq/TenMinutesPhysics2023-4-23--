@@ -42,9 +42,36 @@
             spotLight.shadow.camera.far = 10;
             spotLight.shadow.mapSize.width = 1024;
             spotLight.shadow.mapSize.height = 1024;
+            scene.add(spotLight);
 
 
             var directionLight = new THREE.DirectionLight(0x55505a,1);
+            directionLight.position.set(0,3,0);
+            directionLight.castShadow = true;
+            directionLight.shadow.near = 1;
+            directionLight.shadow.camera.far = 10;
+
+            directionLight.shadow.camera.left = -1;
+            directionLight.shadow.camera.right = 1;
+            directionLight.shadow.camera.bottom = -1;
+            directionLight.shadow.camera.top = 1;
+
+            directionLight.shadow.mapSize.width = 1024;
+            directionLight.shadow.mapSize.height = 1024;
+
+            scene.add(directionLight);
+
+
+            var ground = new THREE.Mesh(
+                new THREE.PlaneBufferGeometry(20,20,1,1),
+                new THREE.MeshePhongMaterial({color:0xa0adaf,shininess:150})
+
+            );
+            ground.roation.x = -Math.PI/2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+
 
 
             renderer = new THREE.WebGLRenderer();
@@ -62,7 +89,7 @@
             scene.add(camera);
 
 
-            cameraControl = new THREE.OrbitControl(camera,renderer.domElement);
+            cameraControl = new THREE.OribitControls(camera,renderer.domElement);
             cameraControl.zoomSpeed = 2.0;
             cameraControl.panSpeed = 0.4;
 
