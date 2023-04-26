@@ -66,7 +66,7 @@
         class Sphere{
             constructor(position,radius,velocity,scene){
                 this.position = position;
-                this.radisu = radius;
+                this.radius = radius;
                 this.velocity = velocity;
                 this.scene = scene;
                 
@@ -102,6 +102,12 @@
                     this.velocity.z = this.velocity.z;
 
                 }
+
+                if(this.position.y < this.radius){
+                    this.position.y = this.radius;
+                }
+
+                this.sphereMesh.position = this.position;
 
 
             }
