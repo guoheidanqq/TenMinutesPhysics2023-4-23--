@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billiard Game</title>
+</head>
+<body>
+    
+    <canvas id = "physicsCanvas" style = "border:2px solid"> </canvas>
+
+    <script>
+        var canvas = document.getElementById("physicsCanvas");
+        var g = canvas.getContext("2d");
+        canvas.width = window.innerWidth-20 ;
+        canvas.height = window.innerHeight-100 ;
+        
+        var physicsMinWidth = 20.0 ;//meters 
+        var scale = Math.min(canvas.height,canvas.width)/physicsMinWidth ;
+        var PhysicsWidth  = canvas.width/scale ;
+        var PhysicsHeight = canvas.height/scale ;
+        var deltaT = 1.0/60.0;
+
+        class Vec2{
+
+            constructor(x = 0.0,y = 0.0){
+                this.x = x;
+                this.y = y;
+            }
+
+            set(vec){
+                this.x = vec.x;
+                this.y = vec.y;
+            }
+
+            clone(){
+                return new Vec2(this.x,this.y);
+            }
+
+            add(vec, s = 1.0){
+                this.x = this.x + vec.x*s;
+                this.y = this.y + vec.y*s;
+
+            }
+
+            sub(vec, s = 1.0){
+                this.x = this.x - vec.x * s;
+                this.y = this.y - vec.y * s;
+                
+            }
+
+            addVec2(a,b){
+                this.x = a.x + b.x;
+                this.y = a.x + b.y;
+            }
+            
+            subVec2(a,b){
+                this.x = a.x - b.x;
+                this.x = a.x - b.x;
+
+            }
+
+            length(){
+                
+                return Math.sqrt(this.x*this.x + this.y*this.y);
+            }
+
+            dot(vec){
+                return this.x * vec.x + this.y * vec.y;
+                
+            }
+
+
+
+        };
+
+
+
+
+
+       //scene ---------------------
+       var G = {
+        x:0.0,
+        y:-9.8
+       };
+
+       
+       
+        var sphere = {
+            radius: 0.3,
+            position : {x:0.3,y:0.3},
+            velocity: {x:10.0,y:10.0}
+        };
+
+        function CanvasX(simPosition){
+            return simPosition.x * scale;
+        }
+        function CanvasY(simPosition){
+            return canvas.height - simPosition.y *scale;
+        }
+
+
+        function Rendering(){
+            g.clearRect(0,0,canvas.width,canvas.height);
+            g.fillStyle = "#00FF00";
+
+            g.beginPath();
+            g.arc(CanvasX(sphere.position),CanvasY(sphere.position),scale*sphere.radius,0,2*Math.PI);
+            g.closePath();
+            g.fill();
+
+        }
+
+        function PhysicsSimulating(){
+            sphere.velocity.x = sphere.velocity.x + G.x * deltaT;
+            sphere.velocity.y = sphere.velocity.y + G.y * deltaT;
+            sphere.position.x = sphere.position.x + sphere.velocity.x * deltaT;
+            sphere.position.y = sphere.position.y + sphere.velocity.y * deltaT;
+
+            if(sphere.position.x > PhysicsWidth){
+                sphere.velocity.x = -sphere.velocity.x;
+            }
+            if(sphere.position.x<0){
+                sphere.velocity.x = - sphere.velocity.x;
+            }
+            if(sphere.position.y<0){
+                sphere.velocity.y = - sphere.velocity.y;
+            }
+            if(sphere.position.y>PhysicsHeight){
+                sphere.velocity.y = - sphere.velocity.y;
+            }
+
+        }
+
+        function Tick(){
+            PhysicsSimulating();
+            Rendering();
+            requestAnimationFrame(Tick);
+        }
+
+        Tick();
+        
+
+
+
+    </script>
+
+    
+</body>
+</html>

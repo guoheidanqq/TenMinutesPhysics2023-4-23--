@@ -12,21 +12,7 @@
     <button id = "btRun" onclick="run()"> Run </button>
     <button id = "btReset" onclick="restart()"> Restart</button>
     <div id = "container"></div>
-    <script>
-        var paused = true;
-        function run(){
-            var button = document.getElementById("btRun");
-            if(paused)
-            button.innerHTML = "Stop";
-            else button.innerHTML = "Run";
-            paused = !paused
-        }
 
-
-        function restart(){
-            location.reload();
-        }
-    </script>
 
 
     <script type = "importmap">
@@ -39,10 +25,6 @@
     </script>
 
 
-    <script>
-
-
-    </script>
     <script type = "module">       
         import * as THREE from 'three';
         import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
@@ -54,13 +36,32 @@
         var camera;
         var cameraControl;
 
+        function run(){
+            var button = document.getElementById("btRun");
+            if(physicsScene.paused)
+            button.innerHTML = "Stop";
+            else button.innerHTML = "Run";
+            physicsScene.paused = ! physicsScene.paused;
+
+          
+        }
+      
+        function restart(){
+            location.reload();
+        }
+
+        document.getElementById("btRun").onclick=run;
+        document.getElementById("btReset").onclick = restart;
+
+
+
         var physicsScene = {
 
             G: new THREE.Vector3(0,-10,0),
             deltaT: 1.0/60.0,
             paused: true,
-            worldSize:{x:1.5,z:2.5},
-            objects:[]
+            worldSize:{x:2,y:2,z:2},
+            objects:[],
         };
 
         class Sphere{
@@ -73,7 +74,7 @@
                 var sphereGeometry = new THREE.SphereGeometry(radius,32,32);
                 var sphereMaterial = new THREE.MeshPhongMaterial({color:0xff0000});
                 this.sphereMesh = new THREE.Mesh(sphereGeometry,sphereMaterial);
-                this.sphereMesh.position = position;
+                this.sphereMesh.position.copy(position);
                 scene.add(this.sphereMesh); 
             }
 
@@ -81,7 +82,8 @@
 
                 this.velocity.addScaledVector(physicsScene.G,physicsScene.deltaT);
                 this.position.addScaledVector(this.velocity,physicsScene.deltaT);
-
+                console.log(this.velocity);
+                console.log(this.position);
                 if(this.position.x < -physicsScene.worldSize.x){
                     this.position.x = -physicsScene.worldSize.x;
                     this.velocity.x = -this.velocity.x;
@@ -89,7 +91,7 @@
                 }
                 if(this.position.x > physicsScene.worldSize.x){
                     this.position.x = physicsScene.worldSize.x;
-                    this.velocity.x = this.velocity.x;
+                    this.velocity.x = -this.velocity.x;
 
                 }
                 if(this.position.z < -physicsScene.worldSize.z){
@@ -99,15 +101,21 @@
                 }
                 if(this.position.z > physicsScene.worldSize.z){
                     this.position.z = physicsScene.worldSize.z;
-                    this.velocity.z = this.velocity.z;
+                    this.velocity.z = -this.velocity.z;
 
                 }
 
                 if(this.position.y < this.radius){
                     this.position.y = this.radius;
+                    this.velocity.y = -this.velocity.y;
+                }
+                if(this.position.y > physicsScene.y){
+                    this.position.y = this.physicsScene.y;
+                    this.velocity = -this.velocity.y;
+
                 }
 
-                this.sphereMesh.position = this.position;
+                this.sphereMesh.position.copy(this.position);
 
 
             }
@@ -193,11 +201,11 @@
             cameraControl.panSpeed = 0.4;
 
 
-            var sphereGeometry = new THREE.SphereGeometry(0.2,32,32);
-            var sphereMaterial = new THREE.MeshPhongMaterial({color: 0x00ff00});
-            var sphereMesh =  new THREE.Mesh(sphereGeometry,sphereMaterial);
-            sphereMesh.position.set(0,1,0);
-            scene.add(sphereMesh);
+            // var sphereGeometry = new THREE.SphereGeometry(0.2,32,32);
+            // var sphereMaterial = new THREE.MeshPhongMaterial({color: 0x00ff00});
+            // var sphereMesh =  new THREE.Mesh(sphereGeometry,sphereMaterial);
+            // sphereMesh.position.set(0,1,0);
+            // scene.add(sphereMesh);
             
             window.addEventListener("resize",resizeEventHandler,false);
 
@@ -213,8 +221,25 @@
         }
 
 
+        function InitPhysics(scene){
+            var radius = 0.2;
+            var position = new THREE.Vector3(radius,radius,radius);
+            var velocity = new THREE.Vector3(0.0,3.0,3.0);
+            physicsScene.objects.push(new Sphere(position,radius,velocity,scene));
+
+        }
+
 
         function PhysicsSimulating(){
+            
+            if(physicsScene.paused)
+                return;
+            console.log("physics simulating");
+            for( var i = 0; i < physicsScene.objects.length; i++){
+                console.log("objects simulating");    
+                physicsScene.objects[i].simulate();
+            }
+
 
         }
 
@@ -230,6 +255,7 @@
         }
 
         InitScene();
+        InitPhysics(scene);
         Tick();
 
     </script>
