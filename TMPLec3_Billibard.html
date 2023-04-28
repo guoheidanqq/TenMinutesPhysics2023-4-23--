@@ -68,14 +68,26 @@
 
             dot(vec){
                 return this.x * vec.x + this.y * vec.y;
-                
+
             }
 
 
 
         };
 
+        class Sphere{
+            constructor(position,velocity,radius,mass){
+                this.position = position.clone();
+                this.velocity = velocity.clone();
+                this.radius = radius;
+                this.mass = mass;
+            }
 
+            simulating(){
+                this.position
+            }
+
+        };
 
 
 
