@@ -21,6 +21,13 @@
         var PhysicsWidth  = canvas.width/scale ;
         var PhysicsHeight = canvas.height/scale ;
         var deltaT = 1.0/60.0;
+        
+
+
+
+
+
+
 
         class Vec2{
 
@@ -83,27 +90,106 @@
                 this.mass = mass;
             }
 
-            simulating(velocity,deltaT){
-                this.position
+            simulating(gravity,deltaT){
+                this.velocity.add(gravity,deltaT);
+                this.position.add(this.velocity,deltaT);
             }
 
+
+
         };
+ 
+
+        class Scene {
+
+            static G = new Vec2(0.0,-9.8);
+            static deltaT = 1.0/60.0;
+            static spheres=[];
+            static restitution = 1.0;
+            static SimWidth = PhysicsWidth;
+            static SimHeight = PhysicsHeight;
+            
+            static InitScene(){
+                var NUM = 20;
+                for(var i = 0; i< NUM; i++){
+
+                    var radius = 0.5 + Math.random() * 0.5;
+                    var mass = Math.PI * radius *radius;
+                    var position = new Vec2(Math.random()*Scene.SimWidth,Math.random()*Scene.SimHeight);
+                    var velocity = new Vec2(2.0 + Math.random()*2.0,2.0 + Math.random()*2.0);
+                    Scene.spheres.push(new Sphere(position,velocity,radius,mass));
+                }
+            }
+
+
+            static Draw(){
+                g.clearRect(0,0,canvas.width,canvas.height);
+                g.fillStyle = "#00FF00";
+           
+                for(var i = 0; i < Scene.spheres.length; i++){
+                    g.beginPath();
+                    g.arc(CanvasX(Scene.spheres[i].position),CanvasY(Scene.spheres[i].position),
+                    scale*Scene.spheres[i].radius,0,2*Math.PI);
+                    g.closePath();
+                    g.fill(); 
+                }
+
+            }
+
+            static PhysicsSimulating(){
+                for(var i = 0; i < Scene.spheres.length;i++){
+                    Scene.spheres[i].simulating(Scene.G,Scene.deltaT);
+                }
+
+                Scene.HandlingWallCollision();
+                Scene.HandlingSpheresCollision();
+            }
+
+            static HandlingWallCollision(){
+
+                for(var i = 0; i < Scene.spheres.length; i++){
+                    var sphere = Scene.spheres[i];
+                    if(sphere.position.x > Scene.SimWidth){
+                    sphere.velocity.x = -sphere.velocity.x;
+                    sphere.position.x = Scene.SimWidth-sphere.radius;
+                    }
+                    if(sphere.position.x<0){
+                        sphere.velocity.x = - sphere.velocity.x;
+                        sphere.position.x = sphere.radius;
+                    }
+                    if(sphere.position.y<0){
+                        sphere.velocity.y = - sphere.velocity.y;
+                        sphere.position.y = sphere.radius;
+                    }
+                    if(sphere.position.y>Scene.SimHeight){
+                        sphere.velocity.y = - sphere.velocity.y;
+                        sphere.y = Scene.SimHeight-sphere.radius;
+                    }
+                }
+
+               
+            }
+
+            static HandlingSpheresCollision(sphereA,sphereB,restitution){
+
+                 var ma = sphereA.mass;
+                 var mb = sphereB.mass;
+                 var va = sphereA.velocity;
+                 var vb = sphereB.velocity;
+                 var dir_AB = new Vec2();
+                 var A = sphereA.position;
+                 var B = sphereB.position;
+                 dir_AB.subVec2(B,A);
+
+            }
+
+
+          };
 
 
 
-       //scene ---------------------
-       var G = {
-        x:0.0,
-        y:-9.8
-       };
 
-       
-       
-        var sphere = {
-            radius: 0.3,
-            position : {x:0.3,y:0.3},
-            velocity: {x:10.0,y:10.0}
-        };
+
 
         function CanvasX(simPosition){
             return simPosition.x * scale;
@@ -113,35 +199,14 @@
         }
 
 
-        function Rendering(){
-            g.clearRect(0,0,canvas.width,canvas.height);
-            g.fillStyle = "#00FF00";
-
-            g.beginPath();
-            g.arc(CanvasX(sphere.position),CanvasY(sphere.position),scale*sphere.radius,0,2*Math.PI);
-            g.closePath();
-            g.fill();
+        function Rendering(){           
+            Scene.Draw();
 
         }
 
         function PhysicsSimulating(){
-            sphere.velocity.x = sphere.velocity.x + G.x * deltaT;
-            sphere.velocity.y = sphere.velocity.y + G.y * deltaT;
-            sphere.position.x = sphere.position.x + sphere.velocity.x * deltaT;
-            sphere.position.y = sphere.position.y + sphere.velocity.y * deltaT;
-
-            if(sphere.position.x > PhysicsWidth){
-                sphere.velocity.x = -sphere.velocity.x;
-            }
-            if(sphere.position.x<0){
-                sphere.velocity.x = - sphere.velocity.x;
-            }
-            if(sphere.position.y<0){
-                sphere.velocity.y = - sphere.velocity.y;
-            }
-            if(sphere.position.y>PhysicsHeight){
-                sphere.velocity.y = - sphere.velocity.y;
-            }
+            
+            Scene.PhysicsSimulating();
 
         }
 
@@ -151,6 +216,7 @@
             requestAnimationFrame(Tick);
         }
 
+        Scene.InitScene();
         Tick();
         
 
