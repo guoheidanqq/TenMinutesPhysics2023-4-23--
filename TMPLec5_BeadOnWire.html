@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bead on wire</title>
+    <style>
+        
+
+    </style>
+</head>
+
+
+
+<body>
+    <canvas id = "physicsCanvas" style = "border:2px solid"> </canvas>
+
+    <script>
+        var canvas = document.getElementById("physicsCanvas");
+        var g = canvas.getContext("2d");
+        canvas.width = window.innerWidth-20 ;
+        canvas.height = window.innerHeight-100 ;
+        
+        var physicsMinWidth = 20.0 ;//meters 
+        var scale = Math.min(canvas.height,canvas.width)/physicsMinWidth ;
+        var PhysicsWidth  = canvas.width/scale ;
+        var PhysicsHeight = canvas.height/scale ;
+  
+
+    class Vec2{
+
+        constructor(x = 0.0,y = 0.0){
+            this.x = x;
+            this.y = y;
+        }
+
+        set(vec){
+            this.x = vec.x;
+            this.y = vec.y;
+            return this;
+        }
+
+        clone(){
+            return new Vec2(this.x,this.y);
+        }
+
+        add(vec, s = 1.0){
+            this.x = this.x + vec.x*s;
+            this.y = this.y + vec.y*s;
+            return  this;
+
+        }
+
+        sub(vec, s = 1.0){
+            this.x = this.x - vec.x * s;
+            this.y = this.y - vec.y * s;
+            return this;
+            
+        }
+
+        addVec2(a,b){
+            this.x = a.x + b.x;
+            this.y = a.y + b.y;
+            return this;
+        }
+
+        subVec2(a,b){
+            this.x = a.x - b.x;
+            this.y = a.y - b.y;
+            return this;
+
+        }
+
+        length(){
+            
+            return Math.sqrt(this.x*this.x + this.y*this.y);
+        }
+
+        dot(vec){
+            return this.x * vec.x + this.y * vec.y;
+
+        }
+
+        normalize(){
+            if(this.length()>1e-6){
+                this.scale(1/this.length());
+                return this;
+            }
+
+        }
+        scale(s){
+            this.x = this.x * s;
+            this.y = this.y * s ;
+            return this;
+        }
+
+
+
+    };
+
+    class AnalyticBead{
+        constructor(position,velocity,radius,mass,angle,omega){
+            this.position = position.clone();
+            this.velocity = velocity.clone();
+            this.prePosition = position.clone();
+            this.radius = radius;
+            this.mass = mass;
+            this.angle = angle;
+            this.omega = omega;
+            this.acc = 0;
+        }
+
+        simulating(gravity,deltaT,wire){
+            var R = Scene.wire.radius;
+            var G = -Scene.G.y;
+            this.acc = -G/R * Math.cos(this.angle);
+            this.omega = this.omega + this.acc *deltaT;
+            this.angle = this.angle + this.omega * deltaT;
+            var x = R*Math.cos(this.angle) + Scene.wire.centerX;
+            var y = R*Math.sin(this.angle) + Scene.wire.centerY;
+            var vec  = new Vec2(x,y);            
+            this.position.set(vec);
+
+        }
+
+
+    };
+
+
+
+
+
+    class Bead{
+        constructor(position,velocity,radius,mass){
+            this.position = position.clone();
+            this.velocity = velocity.clone();
+            this.prePosition = position.clone();
+            this.radius = radius;
+            this.mass = mass;
+        }
+
+        simulating(gravity,deltaT,wire){
+            var NUM_STEPS = Scene.NUM_STEPS;
+            var dt = deltaT/NUM_STEPS;
+            deltaT = dt;
+
+            for(var i = 0; i < NUM_STEPS;i++){
+                var deltaT = dt;
+                this.velocity.add(gravity,deltaT);
+                this.prePosition.set(this.position);
+                this.position.add(this.velocity,deltaT);          
+
+                // keep on wire 
+                var center_V = new Vec2(wire.centerX,wire.centerY);
+                var radius = wire.radius;
+                var dir = new Vec2();
+                dir.subVec2(this.position,center_V);
+                var length = dir.length();
+                var n = dir.clone().normalize();
+
+                var onWirePosition = new Vec2();
+                var scaleN = n.clone().scale(radius);
+                //var lamda = wire.radius - length;
+                
+                onWirePosition.addVec2(center_V,scaleN);            
+                this.position.set(onWirePosition);
+                //this.position.add(n,lamda);
+
+                var prePos = this.prePosition;
+                var position = this.position;
+                var deltaPosition = this.position.clone().sub(this.prePosition);     
+                var velocity = deltaPosition.clone().scale(1/deltaT)      
+                this.velocity.set(velocity);
+            }
+
+            
+
+             
+            
+        }
+
+    };
+
+
+    class Wire{
+      constructor(centerX,centerY,radius){
+        this.centerX = centerX;
+        this.centerY = centerY;
+        this.radius = radius;
+      }  
+    };
+
+    class Scene {
+
+        static G = new Vec2(0.0,-9.8);
+        static deltaT = 1/60.0;        
+        static wire = new Wire(PhysicsWidth/2,PhysicsHeight/2,0.4*PhysicsHeight);   
+        static bead= new Bead(new Vec2(Scene.wire.centerX+Scene.wire.radius,Scene.wire.centerY),new Vec2(0,0),1,1);    
+        static analyticBead = new AnalyticBead(new Vec2(Scene.wire.centerX+Scene.wire.radius,Scene.wire.centerY),new Vec2(0,0),1,1,0,0);
+        static SimWidth = PhysicsWidth;
+        static SimHeight = PhysicsHeight;
+        static NUM_STEPS = 100;
+
+        static InitScene(){
+            Scene.UpdateSceneParameters();
+            window.addEventListener("resize",resizeEventHandler,false);
+
+        }
+
+        static UpdateSceneParameters(){
+        canvas.width = window.innerWidth-20 ;
+        canvas.height = window.innerHeight-100 ;        
+        physicsMinWidth = 20.0 ;//meters 
+        scale = Math.min(canvas.height,canvas.width)/physicsMinWidth ;
+        PhysicsWidth  = canvas.width/scale ;
+        PhysicsHeight = canvas.height/scale ;
+        Scene.SimWidth = PhysicsWidth;
+        Scene.SimHeight = PhysicsHeight;
+        Scene.wire.centerX = PhysicsWidth/2;
+        Scene.wire.centerY = PhysicsHeight/2;
+        Scene.wire.radius = 0.4*PhysicsHeight;
+        Scene.bead.position.x = Scene.wire.centerX+Scene.wire.radius;
+        Scene.bead.position.y =  Scene.wire.centerY;
+        Scene.analyticBead.position.x = Scene.wire.centerX+Scene.wire.radius;
+        Scene.analyticBead.position.y =  Scene.wire.centerY;
+
+        }
+
+
+        static Draw(){
+            g.clearRect(0,0,canvas.width,canvas.height);
+            
+            g.beginPath();
+            g.strokeStyle="#000000";
+            g.lineWidth=2;           
+            var position = new Vec2(Scene.wire.centerX,Scene.wire.centerY);
+            var cx = CanvasX(position);
+            var cy = CanvasY(position);
+            g.arc(cx,cy,scale*Scene.wire.radius,0,2*Math.PI);
+            g.closePath();
+            g.stroke(); 
+
+
+            g.beginPath();
+            g.fillStyle= "#ff0000";
+            var position = Scene.bead.position;
+            var cx = CanvasX(position);
+            var cy = CanvasY(position);
+            g.arc(cx,cy,scale*Scene.bead.radius,0,2*Math.PI);
+            g.closePath();
+            g.fill();
+
+
+
+            g.beginPath();
+            g.fillStyle= "#00ff00";
+            var position = Scene.analyticBead.position;
+            var cx = CanvasX(position);
+            var cy = CanvasY(position);
+            g.arc(cx,cy,scale*Scene.bead.radius,0,2*Math.PI);
+            g.closePath();
+            g.fill();
+         
+        }
+
+        static PhysicsSimulating(){
+            Scene.bead.simulating(Scene.G,Scene.deltaT,Scene.wire);
+            Scene.analyticBead.simulating(Scene.G,Scene.deltaT,Scene.wire);
+
+        }
+    };
+
+    function CanvasX(simPosition){
+            return simPosition.x * scale;
+        }
+    function CanvasY(simPosition){
+            return canvas.height - simPosition.y *scale;
+        }
+
+
+    function Rendering(){           
+            Scene.Draw();
+
+        }
+
+    function PhysicsSimulating(){
+            
+            Scene.PhysicsSimulating();
+
+        }
+
+    function resizeEventHandler(){
+
+        Scene.UpdateSceneParameters();
+
+    }
+
+    function Tick(){
+            PhysicsSimulating();
+            Rendering();
+            requestAnimationFrame(Tick);
+        }
+
+    Scene.InitScene();
+    Tick();
+        
+
+    </script>
+
+    
+</body>
+</html>

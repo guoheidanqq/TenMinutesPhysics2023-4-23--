@@ -39,6 +39,7 @@
             set(vec){
                 this.x = vec.x;
                 this.y = vec.y;
+                return this;
             }
 
             clone(){
@@ -48,23 +49,27 @@
             add(vec, s = 1.0){
                 this.x = this.x + vec.x*s;
                 this.y = this.y + vec.y*s;
+                return  this;
 
             }
 
             sub(vec, s = 1.0){
                 this.x = this.x - vec.x * s;
                 this.y = this.y - vec.y * s;
+                return this;
                 
             }
 
             addVec2(a,b){
                 this.x = a.x + b.x;
-                this.y = a.x + b.y;
+                this.y = a.y + b.y;
+                return this;
             }
             
             subVec2(a,b){
                 this.x = a.x - b.x;
-                this.x = a.x - b.x;
+                this.y = a.y - b.y;
+                return this;
 
             }
 
@@ -76,6 +81,19 @@
             dot(vec){
                 return this.x * vec.x + this.y * vec.y;
 
+            }
+
+            normalize(){
+                if(this.length()>1e-6){
+                    this.scale(1/this.length());
+                    return this;
+                }
+
+            }
+            scale(s){
+                this.x = this.x * s;
+                this.y = this.y * s ;
+                return this;
             }
 
 
@@ -145,6 +163,18 @@
                 Scene.HandlingSpheresCollision();
             }
 
+            static HandlingSpheresCollision(){
+                for(var i = 0; i< Scene.spheres.length;i++){
+                    for (var j =i+1; j<Scene.spheres.length; j++){
+                        var sphereA = Scene.spheres[i];
+                        var sphereB = Scene.spheres[j];
+                        console.log(sphereA);
+                        Scene.HandlingTwoSpheresCollision(sphereA,sphereB,Scene.restitution);
+
+                    }
+                }
+            }
+
             static HandlingWallCollision(){
 
                 for(var i = 0; i < Scene.spheres.length; i++){
@@ -170,7 +200,7 @@
                
             }
 
-            static HandlingSpheresCollision(sphereA,sphereB,restitution){
+            static HandlingTwoSpheresCollision(sphereA,sphereB,restitution){
 
                  var ma = sphereA.mass;
                  var mb = sphereB.mass;
@@ -179,7 +209,34 @@
                  var dir_AB = new Vec2();
                  var A = sphereA.position;
                  var B = sphereB.position;
+                 var rA = sphereA.radius;
+                 var rB = sphereB.radius;
                  dir_AB.subVec2(B,A);
+                 var d = dir_AB.length();
+                 var n = dir_AB.normalize();
+                                  
+                 if(d == 0 || d > rA + rB ){
+                    return ;
+                 }
+
+                 var restore_position = (rA+rB - d)/2;
+
+                 sphereA.position.add(n,-restore_position);
+                 sphereB.position.add(n,restore_position);
+
+                 
+                 var va1 = va.dot(n);
+                 var vb1 = vb.dot(n);
+                 var va2_V = va.clone().sub(n,va1);
+                 var vb2_V = vb.clone().sub(n,vb1);
+
+                 var va1_new = (ma*va1 + mb*vb1 - mb*(va1-vb1)*restitution)/(ma+mb);
+                 var vb1_new = (ma*va1 + mb*vb1 - ma*(vb1-va1)*restitution)/(ma+mb);
+                 var va1_new_V = n.clone().scale(va1_new);
+                 var vb1_new_V = n.clone().scale(vb1_new);
+
+                 sphereA.velocity.addVec2(va1_new_V,va2_V);
+                 sphereB.velocity.addVec2(vb1_new_V,vb2_V);
 
             }
 
