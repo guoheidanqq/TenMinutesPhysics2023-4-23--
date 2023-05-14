@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sphere3D</title>   
+
+</head>
+<body>
+    <h1>Sphere3D</h1>
+    <button id = "btRun" onclick="run()"> Run </button>
+    <button id = "btReset" onclick="restart()"> Restart</button>
+    <div id = "container"></div>
+
+
+
+    <script type = "importmap">
+        {
+            "imports":{
+                "three":"./build/three.module.js",
+                "three/addons/": "./jsm/"
+            }
+        }
+    </script>
+
+
+    <script type = "module">       
+        import * as THREE from 'three';
+        import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+        //import * as THREE from "https://threejs.org/build/three.module.js";
+       // import { OrbitControls } from "https://threejs.org/examples/jsm/controls/OrbitControls.js";
+        console.log(new THREE.Scene());
+        var scene;
+        var renderer;
+        var camera;
+        var cameraControl;
+        var grabber;
+        document.getElementById("btRun").onclick=run;
+        document.getElementById("btReset").onclick = restart;
+
+
+        var physicsScene = {
+
+            G: new THREE.Vector3(0,-10,0),
+            deltaT: 1.0/60.0,
+            paused: true,
+            worldSize:{x:2,y:2,z:2},
+            objects:[],
+        };
+
+
+
+
+        function run(){
+            var button = document.getElementById("btRun");
+            if(physicsScene.paused)
+            button.innerHTML = "Stop";
+            else button.innerHTML = "Run";
+            physicsScene.paused = ! physicsScene.paused;
+
+          
+        }
+      
+        function restart(){
+            location.reload();
+        }
+
+
+
+        class Sphere{
+            constructor(position,radius,velocity,scene){
+                this.position = position;
+                this.radius = radius;
+                this.velocity = velocity;
+                this.scene = scene;
+                this.isGrabbed = false;
+                
+                
+                var sphereGeometry = new THREE.SphereGeometry(radius,32,32);
+                var sphereMaterial = new THREE.MeshPhongMaterial({color:0xff0000});
+                this.sphereMesh = new THREE.Mesh(sphereGeometry,sphereMaterial);
+                this.sphereMesh.thisRef = this;
+                this.sphereMesh.position.copy(position);
+                scene.add(this.sphereMesh); 
+            }
+
+
+
+            StartGrab(position,velocity){
+                this.isGrabbed = true;
+                this.position.copy(position);
+                this.sphereMesh.position.copy(position);
+
+            }
+
+
+            MoveGrabbed(position,velocity){         
+                this.position.copy(position);
+                this.sphereMesh.position.copy(position);
+            }
+
+
+            EndGrab(position,velocity){
+                
+                this.sphereMesh.position.copy(position);
+                this.velocity.copy(velocity);
+                this.isGrabbed = false;
+
+            }
+
+            simulate(){
+
+                if(grabber.isGrabbed){
+                    console.log("is grabbed");
+                    return;
+                }
+                this.velocity.addScaledVector(physicsScene.G,physicsScene.deltaT);
+                this.position.addScaledVector(this.velocity,physicsScene.deltaT);
+                console.log(this.velocity);
+                console.log(this.position);
+                if(this.position.x < -physicsScene.worldSize.x){
+                    this.position.x = -physicsScene.worldSize.x;
+                    this.velocity.x = -this.velocity.x;
+
+                }
+                if(this.position.x > physicsScene.worldSize.x){
+                    this.position.x = physicsScene.worldSize.x;
+                    this.velocity.x = -this.velocity.x;
+
+                }
+                if(this.position.z < -physicsScene.worldSize.z){
+                    this.position.z = -physicsScene.worldSize.z;
+                    this.velocity.z = -this.velocity.z;
+
+                }
+                if(this.position.z > physicsScene.worldSize.z){
+                    this.position.z = physicsScene.worldSize.z;
+                    this.velocity.z = -this.velocity.z;
+
+                }
+
+                if(this.position.y < this.radius){
+                    this.position.y = this.radius;
+                    this.velocity.y = -this.velocity.y;
+                }
+                if(this.position.y > physicsScene.y){
+                    this.position.y = this.physicsScene.y;
+                    this.velocity = -this.velocity.y;
+
+                }
+
+                this.sphereMesh.position.copy(this.position);
+
+
+            }
+
+
+
+        };
+
+
+
+        function InitScene(){
+            scene = new THREE.Scene();
+            scene.add(new THREE.AmbientLight(0x505050));
+            scene.fog = new THREE.Fog(0x000000,0,15);
+
+            var spotLight = new THREE.SpotLight(0xffffff);
+            spotLight.angle = Math.PI/5;
+            spotLight.penumbra = 0.2;
+            spotLight.position.set(2,3,3);
+            spotLight.castShadow = true;
+            spotLight.shadow.camera.near = 3;
+            spotLight.shadow.camera.far = 10;
+            spotLight.shadow.mapSize.width = 1024;
+            spotLight.shadow.mapSize.height = 1024;
+
+            scene.add(spotLight);
+
+
+            var directionLight = new THREE.DirectionalLight(0x55505a,1);
+            directionLight.position.set(0,3,0);
+            directionLight.castShadow = true;
+            directionLight.shadow.near = 1;
+            directionLight.shadow.camera.far = 10;
+
+            directionLight.shadow.camera.left = -1;
+            directionLight.shadow.camera.right = 1;
+            directionLight.shadow.camera.bottom = -1;
+            directionLight.shadow.camera.top = 1;
+
+            directionLight.shadow.mapSize.width = 1024;
+            directionLight.shadow.mapSize.height = 1024;
+
+            scene.add(directionLight);
+
+
+            var ground = new THREE.Mesh(
+                new THREE.PlaneBufferGeometry(20,20,1,1),
+                new THREE.MeshPhongMaterial({color:0xa0adaf,shininess:150})
+
+            );
+            ground.rotation.x = -Math.PI/2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+
+
+            
+
+            var helper = new THREE.GridHelper();
+            helper.material.opacity = 1.0;
+            helper.material.transparent = true;
+            helper.position.set(0,0.002,0);
+            scene.add(helper);
+
+
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.shadowMap.enabled = true;
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(0.8*window.innerWidth,0.8*window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+
+
+            camera = new THREE.PerspectiveCamera(70,window.innerWidth/window.innerHeight,0.01,100);
+            camera.position.set(0,1,4);
+            camera.updateMatrixWorld();
+
+            scene.add(camera);
+
+
+            cameraControl = new OrbitControls(camera,renderer.domElement);
+            cameraControl.zoomSpeed = 2.0;
+            cameraControl.panSpeed = 0.4;
+
+
+
+
+            window.addEventListener("resize",resizeEventHandler,false);
+            container.addEventListener("pointerdown",MouseDownEventHandler,false);
+            container.addEventListener("pointerup",MouseUpEventHandler,false);
+            container.addEventListener("pointermove",MouseMoveEventHandler,false);
+            grabber = new Grabber();
+            
+        }
+
+    
+
+
+       
+    class Grabber{
+
+        constructor(){
+            this.rayCaster = new THREE.Raycaster();
+            //this.rayCaster.layers.set(1); 
+            //confused bug for set(1)
+            this.rayCaster.params.Line.threshold  = 0.1;
+            this.raycastedObject = null;
+            this.distance = 0.0;
+            this.prePosition = new THREE.Vector3();
+            this.position = new THREE.Vector3();
+            this.velocity = new THREE.Vector3();
+            this.time = 0.0;
+            this.isGrabbed = false;
+            
+        }
+
+
+        IncreaseTime(deltaT){
+            this.time = this.time + deltaT;
+            console.log(this.time);
+
+        }
+
+        UpdateRaycaster(x,y){
+
+            var RenderWindowSize = renderer.domElement.getBoundingClientRect();
+            //console.log(RenderWindowSize);
+            this.rayFromCamera = new THREE.Vector2();
+            this.rayFromCamera.x = (x-RenderWindowSize.left)/RenderWindowSize.width *2 -1;
+            this.rayFromCamera.y = -(y-RenderWindowSize.top)/RenderWindowSize.height *2 + 1;
+            this.rayCaster.setFromCamera(this.rayFromCamera,camera); 
+           // console.log(this.rayFromCamera);
+
+        }
+
+
+
+
+        Start(mousex,mousey){
+            this.raycastedObject = null;
+            this.UpdateRaycaster(mousex,mousey);
+            var intersects = this.rayCaster.intersectObjects(scene.children);
+            if(intersects.length > 0){
+                var hittedObj = intersects[0].object.thisRef;
+                if(hittedObj instanceof Sphere){
+                    this.raycastedObject = hittedObj;
+                    this.isGrabbed = true;
+ 
+                    this.raycastedObject = hittedObj;
+                    console.log(this.raycastedObject);
+                    this.distance = intersects[0].distance;
+                    var position  = this.rayCaster.ray.origin.clone();
+                    position.addScaledVector(this.rayCaster.ray.direction,this.distance);
+                    this.velocity.set(0,0,0);
+                    this.time = 0; 
+                    this.prePosition.copy(position);
+                                    
+                    this.raycastedObject.StartGrab(position,this.velocity);           
+
+         
+
+                }
+            }
+
+
+
+        }
+
+        Move(mouseX,mouseY){
+            if(grabber.isGrabbed){
+                        cameraControl.enableZoom = false;
+                        cameraControl.enablePan = false;
+                        cameraControl.enableRotate = false;
+                        physicsScene.paused = true;
+
+            }
+
+            if(this.raycastedObject instanceof Sphere){
+                this.UpdateRaycaster(mouseX,mouseY);
+                var position = this.rayCaster.ray.origin.clone();
+                position.addScaledVector(this.rayCaster.ray.direction,this.distance);
+                
+                this.position.copy(position);
+
+                this.raycastedObject.MoveGrabbed(this.position,this.velocity);
+
+                this.IncreaseTime(physicsScene.deltaT);
+
+
+            }
+
+        }
+
+        End(mouseX,mouseY){
+            if(grabber.isGrabbed){
+                cameraControl.enableZoom = true;
+                cameraControl.enablePan = true;
+                cameraControl.enableRotate = true;
+                physicsScene.paused = false;
+            }
+
+            if(this.raycastedObject){
+                console.log(mouseX);
+                var movementPosition = this.position.clone();
+                movementPosition.sub(this.prePosition);
+                var velocity = movementPosition.clone();
+                console.log(this.time);
+                if(this.time>0){
+                    velocity.divideScalar(this.time);
+                    console.log(velocity);
+
+                }
+                else {
+                    velocity.set(0,0,0);
+                }
+                this.velocity.copy(velocity);
+                console.log("speed" );
+                console.log(this.velocity);
+                
+                this.raycastedObject.EndGrab(this.position,this.velocity);
+                this.raycastedObject = null;
+                this.isGrabbed = false;
+                this.position.set(0,0,0);
+                this.prePosition.set(0,0,0);
+                this.time = 0;
+                if(physicsScene.paused){
+                        run();
+                }
+
+            }
+
+        }
+
+    };
+
+// Event handlers
+        function MouseDownEventHandler(mouseEvent){
+            console.log("mouse down");
+
+            let mouseX = mouseEvent.clientX;
+            let mouseY = mouseEvent.clientY;
+            grabber.UpdateRaycaster(mouseX, mouseY);
+            grabber.Start(mouseX,mouseY);
+
+            
+        }
+
+        function MouseUpEventHandler(mouseEvent){
+            console.log("mouse up");
+
+
+            let mouseX = mouseEvent.clientX;
+            let mouseY = mouseEvent.clientY;
+            grabber.UpdateRaycaster(mouseX, mouseY);
+            grabber.End(mouseX,mouseY);
+
+
+
+            
+            
+
+        }
+
+        function MouseMoveEventHandler(mouseEvent){
+            console.log("mouse move");
+            let mouseX = mouseEvent.clientX;
+            let mouseY = mouseEvent.clientY;
+            grabber.UpdateRaycaster(mouseX, mouseY);
+            grabber.Move(mouseX,mouseY);
+        
+
+        }
+        function resizeEventHandler(){
+            camera.apsect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth,window.innerHeight);
+        }
+
+
+        function InitPhysics(scene){
+            var radius = 0.2;
+            var position = new THREE.Vector3(radius,radius,radius);
+            var velocity = new THREE.Vector3(0.0,3.0,3.0);
+            physicsScene.objects.push(new Sphere(position,radius,velocity,scene));
+
+        }
+
+
+        function PhysicsSimulating(){
+            
+            if(physicsScene.paused)
+                return;
+            console.log("physics simulating");
+            for( var i = 0; i < physicsScene.objects.length; i++){
+                console.log("objects simulating");    
+                physicsScene.objects[i].simulate();
+            }
+
+
+        }
+
+        function Rendering(){
+            renderer.render(scene,camera);
+            cameraControl.update();
+        }
+       
+       
+       //main struture 
+       
+        function Tick(){
+            PhysicsSimulating();
+            Rendering(); 
+
+            requestAnimationFrame(Tick);
+        }
+
+        InitScene();
+        InitPhysics(scene);
+        Tick();
+
+    </script>
+</body>
+</html>

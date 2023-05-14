@@ -8,9 +8,15 @@
 </head>
 <body>
 
-    <button class = "button" onclick = "Restart()"> Restart</button>
+    <button id ="restartButton" class = "button" onclick = "Restart()"> Restart</button>
     <button id = "runButton" class = "button" onclick = "Run()"> Run </button>
-    <button class = "button" onclick = "UseStepSimulating()">Use Steps</button>
+    <button id = "stepsButton" class = "button" onclick = "UseStepSimulating()">Use Steps</button>
+    <p>
+        sub steps:
+        <input type="range" min="0" max="100" value="20" id = "stepsSlider" class = "slider">
+        <span id = "steps">100</span>
+    </p>
+    
     <canvas id = "physicsCanvas" style = "border:2px solid"> </canvas>
 
 
@@ -108,6 +114,8 @@
             this.masses = [0];
             this.angles = [0];
             this.lengthes =[0];
+            this.theta = [0];
+            this.omega = [0];
             
             this.positions = [new Vec2(0,0)];
             this.prepositions = [new Vec2(0,0)];
@@ -127,6 +135,8 @@
                 this.positions.push(new Vec2(x,y));
                 this.prepositions.push(new Vec2(x,y));
                 this.velocities.push(new Vec2(0,0));
+                this.theta.push(this.angles[i]-Math.PI/2);
+                this.omega.push(0);
             }
 
             this.NUM = this.masses.length;
@@ -138,10 +148,29 @@
         UseStepSimulating(gravity,deltaT,numSteps){
             var NUM_STEPS  = numSteps;
             var dt = deltaT/NUM_STEPS
-            for(var i = 0; i < NUMSTEP; i++){
-                simulating(gravity,dt);
+            for(var i = 0; i < NUM_STEPS; i++){
+                this.simulating(gravity,dt);
 
             }
+
+        }
+
+
+
+        simulatingAnalytic(gravity,deltaT){
+            var l1 = this.lengthes[1];
+            var l2 = this.lengthes[2];
+            var l3 = this.lengthes[3];
+            var m1 = this.masses[1];
+            var m2 = this.masses[2];
+            var m3 = this.masses[3];
+            var g = gravity;
+            var t1 = this.theta[1];
+            var t2 = this.theta[2];
+            var t3 = this.theta[3];
+            var w1 = this.omega[1];
+            var w2 = this.omega[2];
+            var w3 = this.omega[3];
 
         }
 
@@ -274,6 +303,8 @@ class Scene {
 
     }
 
+    
+
     static UpdateSceneParameters(){
         canvas.width = window.innerWidth-20 ;
         canvas.height = window.innerHeight-100 ;        
@@ -284,6 +315,7 @@ class Scene {
         Scene.SimWidth = PhysicsWidth;
         Scene.SimHeight = PhysicsHeight;
         Scene.pendulum = new Pendulum(masses,lengthes,angles);
+
     
     }
 
@@ -296,7 +328,7 @@ class Scene {
         if(Scene.isSimulating  ){
             
             if(Scene.isUseStepSimulating){
-                Scene.pendulum.UseStepSimulating(Scene.G,Scene.deltaT,Scene.numSteps);
+                Scene.pendulum.UseStepSimulating(Scene.G,Scene.deltaT,Scene.NUM_STEPS);
 
             }
             else{
@@ -312,6 +344,39 @@ class Scene {
     }
     };
 
+class UI{    
+    constructor(){
+        this.runButton = document.getElementById("runButton");
+        this.restartButton = document.getElementById("restartButton");
+        this.stepsButton = document.getElementById("stepsButton");
+        this.stespSlider = document.getElementById("stepsSlider");
+
+    }
+    
+    update(){
+        if(Scene.isUseStepSimulating){
+        this.stepsButton.innerHTML ="Using Steps Simulating";
+        }
+        else {
+        this.stepsButton.innerHTML = "No Steps Simulating";
+        }
+
+        if(Scene.isSimulating){
+        this.runButton.innerHTML = "Pause";
+        }
+        else{
+        this.runButton.innerHTML = "Run";
+        }
+        console.log(this.stespSlider.value);
+        Scene.NUM_STEPS = this.stespSlider.value;
+    }
+};
+
+var ui = new UI();
+
+
+
+
 function CanvasX(simPosition){
     return simPosition.x * scale;
 }
@@ -326,20 +391,14 @@ function Run(){
     Scene.isSimulating  = ! Scene.isSimulating;
     var button = document.getElementById("runButton");
     console.log(button);
-    if(Scene.isSimulating){
-        button.innerHTML = "Pause";
-
-    }
-    else{
-        button.innerHTML = "Run";
-    }
-
+    ui.update();
 }
 
 function UseStepSimulating(){
     console.log("Use step simulating");
-   // Scene.isUseStepSimulating = ! Scene.isUseStepSimulating;
-
+    var button = document.getElementById("stepsButton");
+    Scene.isUseStepSimulating = ! Scene.isUseStepSimulating;
+    ui.update();
     
 
 }
@@ -347,6 +406,9 @@ function UseStepSimulating(){
 function Restart(){
     console.log("restart");
     Scene.InitScene();
+    Scene.isSimulating = false;
+    Scene.isSimulating = false;
+    ui.update();
 
 }
 
