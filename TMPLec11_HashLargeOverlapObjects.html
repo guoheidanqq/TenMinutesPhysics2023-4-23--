@@ -8,7 +8,7 @@
 
 </head>
 <body>
-    <h1>Sphere3D</h1>
+    <h1>Hashing Large Objects</h1>
     <button id = "btRun" onclick="run()"> Run </button>
     <button id = "btReset" onclick="restart()"> Restart</button>
     <div id = "container"></div>
@@ -37,6 +37,8 @@
         var cameraControl;
         var grabber;
         var ui;
+        var balls;
+        var hash;
         document.getElementById("btRun").onclick=run;
         document.getElementById("btReset").onclick = restart;
         
@@ -47,9 +49,237 @@
             G: new THREE.Vector3(0,-10,0),
             deltaT: 1.0/60.0,
             paused: true,
-            worldSize:{x:2,y:2,z:2},
-            objects:[],
+            worldSize:{x:5,y:5,z:5},
+            objects:[],   
+            spacing: 0.15,
+            tableSize:2000         
         };
+
+
+
+        class Hash{
+
+            constructor(numOfObjs,positions){
+                this.spacing = physicsScene.spacing; 
+                
+                
+                this.numOfObjs = numOfObjs; 
+                this.tableSize = this.numOfObjs * 2 ;
+                this.table = new Int32Array(this.tableSize);
+                this.positions = positions;
+                this.objctsRangeArray = new Int32Array(this.tableSize + 1);
+                this.objectsIndexArray = new Int32Array(this.numOfObjs); 
+                
+                
+
+            }
+
+            fillZero(){
+                for(var i = 0; i< this.table.length; i++){
+                    this.table[i] = 0;
+                }
+
+                for(var i = 0; i<this.objctsRangeArray.length; i++){
+                    this.objctsRangeArray[i] =0;
+                }
+
+                for(var i = 0 ; i < this.objectsIndexArray; i++){
+                    this.objectsIndexArray[i] = 0; 
+
+                }
+                
+
+            }
+            createDataStructure(){
+                this.fillZero();
+
+                for(let i = 0; i < this.numOfObjs; i++){
+                    var x = this.positions[3*i];
+                    var y = this.positions[3*i+1];
+                    var z = this.positions[3*i + 2];
+                    var xi = this.intIndex(x);
+                    var yi = this.intIndex(y);
+                    var zi = this.intIndex(z);
+                    var htPos = this.hashfunction(xi,yi,zi);
+                    this.table[htPos] = this.table[htPos] + 1;
+
+                }
+
+                var cumSum = 0 ;
+                for(var i = 0 ; i < this.objctsRangeArray.length-1; i++){
+                    cumSum = cumSum + this.table[i]; 
+                    this.objctsRangeArray[i] = cumSum;
+                }
+                this.objctsRangeArray[this.objctsRangeArray.length-1] = cumSum;
+
+
+
+
+                for(let i = 0; i < this.numOfObjs; i++){
+                    var x = this.positions[3*i];
+                    var y = this.positions[3*i+1];
+                    var z = this.positions[3*i + 2];
+                    var xi = this.intIndex(x);
+                    var yi = this.intIndex(y);
+                    var zi = this.intIndex(z);
+                    var htPos = this.hashfunction(xi,yi,zi);
+                    this.objctsRangeArray[htPos] =  this.objctsRangeArray[htPos]-1;
+                    var currentIndex = this.objctsRangeArray[htPos];
+                    this.objectsIndexArray[currentIndex] = i;
+
+                }
+
+                console.log(this);
+
+            }
+
+            hashfunction(xi,yi,zi){
+                // xi yi  zi should be integers 
+
+                var hf = (xi * 92837111)^(yi * 689287499)^(zi * 283923481);
+                hf = Math.abs(hf) % this.tableSize;
+                return hf;
+
+            }
+
+
+
+
+            intIndex(x){
+                //get the int index of position x
+                var xi = x/this.spacing;
+                return Math.floor(xi);
+            }
+
+            add(x,y,z){
+
+            }
+
+            get(x,y,z){
+
+            }
+
+            findNeighborsInRadius(indexInPos, searchRadius){
+
+                var x0 = this.positions[3*indexInPos];
+                var y0 = this.positions[3*indexInPos + 1];
+                var z0 = this.postions[3*indexInPos + 2];
+                
+
+
+
+            }
+
+
+
+
+            
+        };
+
+
+
+    class Balls{
+
+        constructor(scene){
+            this.spheres = [];
+            this.scene = scene;
+            this.collisionMaterial = new THREE.MeshPhongMaterial({color:0xffff00});
+            this.normalMaterial = new THREE.MeshPhongMaterial({color:0xff0000});
+            
+            const X_MIN = 0;
+            const X_MAX = 2;
+            const Y_MIN  = 0; 
+            const Y_MAX = 2;
+            const Z_MIN = 0; 
+            const Z_MAX = 2; 
+            const SPACING = 0.15;
+
+          
+            for(let x =X_MIN; x < X_MAX; x = x + SPACING ){
+                for(let y = Y_MIN; y < Y_MAX; y = y + SPACING ){
+                    for(let z = Z_MIN; z < Z_MAX; z = z + SPACING){
+                        var position = new THREE.Vector3(x,y,z);
+                        let vx = Math.random();
+                        let vy = Math.random(); 
+                        let vz = Math.random();
+                        var velocity = new THREE.Vector3(vx,vy,vz);
+                        var radius = SPACING/2 ;
+                        var sphere = new Sphere(position,radius,velocity,scene);
+                        this.spheres.push(sphere);
+
+                    }
+                }
+            }
+
+            this.numOfSpheres = this.spheres.length;
+            this.positions = new Float32Array(3* this.numOfSpheres);
+
+            for(var i = 0 ; i < this.numOfSpheres; i++){
+                this.positions[3*i] = this.spheres[i].position.x;
+                this.positions[3*i+ 1] = this.spheres[i].position.y;
+                this.positions[3*i+ 2] = this.spheres[i].position.z;
+                //console.log(this.spheres[i].position.x);
+
+            }
+            this.hash = new Hash(this.numOfSpheres,this.positions);
+            this.hash.createDataStructure();
+            //console.log(this.hash);
+
+            
+        }
+
+
+        updateSpheresPositions(){
+
+            for(var i = 0 ; i  < this.spheres.length;i++){
+
+            }
+
+        }
+
+
+        simulate(){
+
+            for(let i = 0; i < this.numOfSpheres; i++){
+                this.spheres[i].simulate();
+
+
+            }
+
+           
+            for(var i = 0; i < this.numOfSpheres; i++){
+                this.spheres[i].sphereMesh.material = this.normalMaterial;
+            }
+
+            for(var i = 0; i <this.numOfSpheres; i++){
+                for(var j = i+1; j < this.numOfSpheres; j++){
+                    var spherei = this.spheres[i];
+                    var spherej = this.spheres[j];
+                    var radius = spherei.radius;
+                    var centeri = spherei.position;
+                    var centerj = spherej.position;
+                    var distance= centeri.clone().sub(centerj).length();
+                    if(distance < radius){
+                        //console.log(distance);
+                        spherei.sphereMesh.material = this.collisionMaterial;
+                        spherej.sphereMesh.material = this.collisionMaterial;
+                        //console.log(spherei);
+                        
+                    }
+
+                }
+
+            }
+
+            console.log(this.hash.tableSize);
+
+
+
+        }
+
+
+
+    };
 
 
         class UI{
@@ -95,6 +325,7 @@
                 
                 var sphereGeometry = new THREE.SphereGeometry(radius,32,32);
                 var sphereMaterial = new THREE.MeshPhongMaterial({color:0xff0000});
+                this.sphereMaterial = sphereMaterial;                
                 this.sphereMesh = new THREE.Mesh(sphereGeometry,sphereMaterial);
                 this.sphereMesh.thisRef = this;
                 this.sphereMesh.position.copy(position);
@@ -127,14 +358,12 @@
 
             simulate(){
 
-                if(grabber.isGrabbed){
-                    console.log("is grabbed");
+                if(grabber.isGrabbed){                    
                     return;
                 }
                 this.velocity.addScaledVector(physicsScene.G,physicsScene.deltaT);
                 this.position.addScaledVector(this.velocity,physicsScene.deltaT);
-                console.log(this.velocity);
-                console.log(this.position);
+
                 if(this.position.x < -physicsScene.worldSize.x){
                     this.position.x = -physicsScene.worldSize.x;
                     this.velocity.x = -this.velocity.x;
@@ -178,8 +407,11 @@
 
 
         function InitScene(){
-            ui = new UI();
+            ui = new UI();            
+            
             scene = new THREE.Scene();
+
+            balls = new Balls(scene);
             scene.add(new THREE.AmbientLight(0x505050));
             scene.fog = new THREE.Fog(0x000000,0,15);
 
@@ -272,8 +504,6 @@
 
         constructor(){
             this.rayCaster = new THREE.Raycaster();
-            //this.rayCaster.layers.set(1); 
-            //confused bug for set(1)
             this.rayCaster.params.Line.threshold  = 0.1;
             this.raycastedObject = null;
             this.distance = 0.0;
@@ -288,19 +518,18 @@
 
         IncreaseTime(deltaT){
             this.time = this.time + deltaT;
-            console.log(this.time);
 
         }
 
         UpdateRaycaster(x,y){
 
             var RenderWindowSize = renderer.domElement.getBoundingClientRect();
-            //console.log(RenderWindowSize);
+
             this.rayFromCamera = new THREE.Vector2();
             this.rayFromCamera.x = (x-RenderWindowSize.left)/RenderWindowSize.width *2 -1;
             this.rayFromCamera.y = -(y-RenderWindowSize.top)/RenderWindowSize.height *2 + 1;
             this.rayCaster.setFromCamera(this.rayFromCamera,camera); 
-           // console.log(this.rayFromCamera);
+
 
         }
 
@@ -318,7 +547,7 @@
                     this.isGrabbed = true;
  
                     this.raycastedObject = hittedObj;
-                    console.log(this.raycastedObject);
+
                     this.distance = intersects[0].distance;
                     var position  = this.rayCaster.ray.origin.clone();
                     position.addScaledVector(this.rayCaster.ray.direction,this.distance);
@@ -375,19 +604,17 @@
                 var movementPosition = this.position.clone();
                 movementPosition.sub(this.prePosition);
                 var velocity = movementPosition.clone();
-                console.log(this.time);
+
                 if(this.time>0){
                     velocity.divideScalar(this.time);
-                    console.log(velocity);
+
 
                 }
                 else {
                     velocity.set(0,0,0);
                 }
                 this.velocity.copy(velocity);
-                console.log("speed" );
-                console.log(this.velocity);
-                
+
                 this.raycastedObject.EndGrab(this.position,this.velocity);
                 this.raycastedObject = null;
                 this.isGrabbed = false;
@@ -406,8 +633,7 @@
 
 // Event handlers
         function MouseDownEventHandler(mouseEvent){
-            console.log("mouse down");
-
+ 
             let mouseX = mouseEvent.clientX;
             let mouseY = mouseEvent.clientY;
             grabber.UpdateRaycaster(mouseX, mouseY);
@@ -417,8 +643,6 @@
         }
 
         function MouseUpEventHandler(mouseEvent){
-            console.log("mouse up");
-
 
             let mouseX = mouseEvent.clientX;
             let mouseY = mouseEvent.clientY;
@@ -426,14 +650,10 @@
             grabber.End(mouseX,mouseY);
 
 
-
-            
-            
-
         }
 
         function MouseMoveEventHandler(mouseEvent){
-            console.log("mouse move");
+
             let mouseX = mouseEvent.clientX;
             let mouseY = mouseEvent.clientY;
             grabber.UpdateRaycaster(mouseX, mouseY);
@@ -461,11 +681,14 @@
             
             if(physicsScene.paused)
                 return;
-            console.log("physics simulating");
+
             for( var i = 0; i < physicsScene.objects.length; i++){
-                console.log("objects simulating");    
+
                 physicsScene.objects[i].simulate();
+
             }
+
+            balls.simulate();
 
 
         }
